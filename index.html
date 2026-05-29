@@ -476,10 +476,25 @@ async function loadState(){
     state.players.unshift({name:myName,champ:''});
   }
 
-  const {data:gp}=await sb.from('picks').select('*').eq('player',myName);
-  if(gp) gp.forEach(p=>{state.groupPicks[p.match_id]={h:p.home_score,a:p.away_score};});
-  const {data:ep}=await sb.from('elim_picks').select('*').eq('player',myName);
-  if(ep) ep.forEach(p=>{state.elimPicks[p.match_id]={h:p.home_score,a:p.away_score,home:p.home_team||'',away:p.away_team||''};});
+  // Cargar picks de TODOS los jugadores para calcular ranking
+  const {data:allPicks}=await sb.from('picks').select('*');
+  state.friendPicks={};
+  if(allPicks) allPicks.forEach(p=>{
+    if(p.player===myName){
+      state.groupPicks[p.match_id]={h:p.home_score,a:p.away_score};
+    } else {
+      state.friendPicks[p.player+'__'+p.match_id]={h:p.home_score,a:p.away_score};
+    }
+  });
+  const {data:allElim}=await sb.from('elim_picks').select('*');
+  state.friendElimPicks={};
+  if(allElim) allElim.forEach(p=>{
+    if(p.player===myName){
+      state.elimPicks[p.match_id]={h:p.home_score,a:p.away_score,home:p.home_team||'',away:p.away_team||''};
+    } else {
+      state.friendElimPicks[p.player+'__'+p.match_id]={h:p.home_score,a:p.away_score};
+    }
+  });
   const {data:rg}=await sb.from('real_scores').select('*');
   if(rg) rg.forEach(r=>{state.realGroup[r.match_id]={h:r.home_score,a:r.away_score};});
   const {data:re}=await sb.from('elim_real_scores').select('*');
