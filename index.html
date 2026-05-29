@@ -870,6 +870,10 @@ async function removePlayer(name){
 // ── RESULTADOS (admin) ─────────────────────────────────────
 let rf='grupos';
 function renderResultados(){
+  if(myName!=='Admin'){
+    document.getElementById('resultados-content').innerHTML='<div style="color:var(--t3);font-size:13px;padding:2rem 0;text-align:center">🔒 Solo el admin puede ver esta sección.</div>';
+    return;
+  }
   const fe=document.getElementById('rf-filter');
   fe.innerHTML=[['grupos','Grupos'],['r32','Ronda 32'],['r16','Octavos'],['qf','Cuartos'],['sf','Semis'],['3p','3er Puesto'],['f','Final']].map(([v,l])=>
     `<button class="f-btn ${v===rf?'active':''}" onclick="setRF('${v}')">${l}</button>`).join('');
@@ -1006,7 +1010,15 @@ function showNewPlayer(){
 function enterWithPlayer(){
   const sel=document.getElementById('welcome-player-sel');
   const name=(sel.value||'').trim();
-  if(!name){sel.style.borderColor='var(--gold)';return;}
+  if(!name||name==='__new__'){sel.style.borderColor='var(--gold)';return;}
+  if(name==='Admin'){
+    const pwd=prompt('🔒 Contraseña de Admin:');
+    if(pwd!=='Draku2026!'){
+      alert('Contraseña incorrecta.');
+      sel.value='';
+      return;
+    }
+  }
   finishEnter(name);
 }
 function enterWithNew(){
@@ -1019,7 +1031,10 @@ function finishEnter(name){
   localStorage.setItem(NAME_KEY, name);
   myName=name;
   document.getElementById('welcome-screen').style.display='none';
-  document.getElementById('username-display').textContent=name;
+  document.getElementById('username-display').textContent=name==='Admin'?'⚙️ Admin':name;
+  // Mostrar pestaña Resultados solo para Admin
+  const resbtn=document.querySelector('.nav-btn:last-child');
+  if(resbtn) resbtn.style.display=name==='Admin'?'':'none';
   startApp(SUPABASE_URL, SUPABASE_KEY);
 }
 
@@ -1028,7 +1043,10 @@ async function initWelcome(){
   if(savedName){
     myName=savedName;
     document.getElementById('welcome-screen').style.display='none';
-    document.getElementById('username-display').textContent=savedName;
+    document.getElementById('username-display').textContent=savedName==='Admin'?'⚙️ Admin':savedName;
+    // Mostrar Resultados solo para Admin
+    const resbtn=document.querySelector('.nav-btn:last-child');
+    if(resbtn) resbtn.style.display=savedName==='Admin'?'':'none';
     startApp(SUPABASE_URL, SUPABASE_KEY);
     return;
   }
