@@ -454,11 +454,28 @@ function flLg(n){
 function loadLocal(){try{const s=JSON.parse(localStorage.getItem('draku_local'));if(s)Object.assign(state,s);}catch{}}
 function saveLocal(){try{localStorage.setItem('draku_local',JSON.stringify(state));}catch{}}
 
+const FIXED_PLAYERS_LIST=['Chibu','Mono','Rafa','Chiari','Andresito','Dani','Cubi'];
+
 async function loadState(){
   if(!sb){loadLocal();return;}
+
+  // Registrar al usuario actual en Supabase si no es Admin
+  if(myName&&myName!=='Admin'){
+    try{ await sb.from('players').upsert({name:myName},{onConflict:'name'}); }catch(e){}
+  }
+
   const {data:players}=await sb.from('players').select('*');
-  if(players) state.players=players.map(p=>({name:p.name,champ:p.champ}));
-  if(!state.players.find(p=>p.name===myName)) state.players.unshift({name:myName});
+  // Construir lista: fijos + cualquier extra de Supabase
+  const sbNames=players?players.map(p=>p.name):[];
+  const allNames=[...new Set([...FIXED_PLAYERS_LIST,...sbNames])];
+  state.players=allNames.map(name=>{
+    const sbPlayer=players?.find(p=>p.name===name);
+    return{name,champ:sbPlayer?.champ||''};
+  });
+  if(!state.players.find(p=>p.name===myName)&&myName!=='Admin'){
+    state.players.unshift({name:myName,champ:''});
+  }
+
   const {data:gp}=await sb.from('picks').select('*').eq('player',myName);
   if(gp) gp.forEach(p=>{state.groupPicks[p.match_id]={h:p.home_score,a:p.away_score};});
   const {data:ep}=await sb.from('elim_picks').select('*').eq('player',myName);
@@ -488,7 +505,12 @@ async function reloadReal(){
 }
 async function reloadPlayers(){
   const {data:players}=await sb.from('players').select('*');
-  if(players) state.players=players.map(p=>({name:p.name,champ:p.champ}));
+  const sbNames=players?players.map(p=>p.name):[];
+  const allNames=[...new Set([...FIXED_PLAYERS_LIST,...sbNames])];
+  state.players=allNames.map(name=>{
+    const sbPlayer=players?.find(p=>p.name===name);
+    return{name,champ:sbPlayer?.champ||''};
+  });
   renderRanking();
 }
 
